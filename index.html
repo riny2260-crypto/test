@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="나의 인생 그래프 - 나이별로 행복 점수를 기록하는 활동지" />
+<title>나의 인생 그래프</title>
+
+<!-- 깔끔한 고딕체(Pretendard) -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" as="style" crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style>
+  :root{
+    --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+            system-ui, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR",
+            "Malgun Gothic", sans-serif;
+    --ink:#3f4450;
+    --sub:#8a93a8;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; padding:24px;
+    font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+    letter-spacing:-0.2px;
+    background:
+      radial-gradient(circle at 12% 12%, #fff1f6 0 22%, transparent 22%),
+      radial-gradient(circle at 88% 18%, #eaf6ff 0 18%, transparent 18%),
+      #fbfcff;
+    color:var(--ink);
+  }
+  .container{
+    max-width:1180px; margin:0 auto; background:#fff;
+    border:2px solid #ffe3ec; border-radius:24px;
+    padding:26px 28px 30px;
+    box-shadow:0 10px 30px rgba(255,170,190,.16);
+  }
+
+  /* 상단 */
+  .head{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+  h1{ margin:0; font-size:32px; font-weight:800; letter-spacing:-1.2px; }
+  h1 .c1{color:#7b6cf6;} h1 .c2{color:#ff7fa3;} h1 .c3{color:#3fbf95;}
+  .info-card{
+    display:flex; gap:18px; align-items:center;
+    border:1.5px solid #dbe7ff; border-radius:14px; padding:10px 16px; background:#f7faff;
+    font-size:14px; font-weight:500; color:#5b6b8c;
+  }
+  .info-card b{ font-weight:700; color:#3f4450; }
+  .subtitle{ text-align:center; margin:16px 0 4px; font-size:15px; font-weight:500; color:#6b7280; line-height:1.7; }
+  .subtitle .up{ color:#ff5f87; font-weight:700; } .subtitle .down{ color:#3d8bff; font-weight:700; }
+
+  /* 입력 영역 */
+  .setup-box{
+    margin:18px 0 10px; padding:16px 18px;
+    border:1.5px dashed #ffc2d1; border-radius:18px; background:#fffafb;
+  }
+  .setup-grid{ display:grid; grid-template-columns:1.1fr 1fr 1fr auto; gap:10px; }
+  .input-box{
+    margin:10px 0 18px; padding:16px 18px;
+    border:1.5px dashed #bfe3ff; border-radius:18px; background:#f8fcff;
+  }
+  .box-title{ font-size:14px; font-weight:700; margin-bottom:10px; color:#6b7c99; }
+  .event-grid{ display:grid; grid-template-columns:110px 1.9fr 170px auto auto; gap:10px; }
+
+  input,select,button{ font-family:var(--font); font-size:14px; letter-spacing:-0.2px; }
+  input,select{
+    height:44px; border:1.5px solid #e6e8ef; border-radius:12px; padding:0 13px;
+    background:#fff; color:#3f4450; font-weight:500;
+  }
+  input::placeholder{ color:#b9bfcc; font-weight:400; }
+  input:focus,select:focus{ outline:none; border-color:#ffa9c3; box-shadow:0 0 0 3px #ffeef3; }
+  button{
+    height:44px; padding:0 20px; border:none; border-radius:12px;
+    color:#fff; font-weight:700; cursor:pointer; transition:.15s; white-space:nowrap;
+  }
+  button:active{ transform:translateY(1px); }
+  .btn-pink{ background:#ff7fa3; } .btn-pink:hover{ background:#f96b93; }
+  .btn-mint{ background:#3fc7b4; } .btn-mint:hover{ background:#2fb4a1; }
+  .btn-gray{ background:#c2c9d6; } .btn-gray:hover{ background:#aeb6c6; }
+  .btn-blue{ background:#5aa5f7; } .btn-blue:hover{ background:#3f92ec; }
+
+  /* 그래프 제목 */
+  .graph-title{ text-align:center; font-size:24px; font-weight:800; margin:8px 0 14px; color:#454b5c; }
+
+  /* 그래프 영역 */
+  .graph-area{ position:relative; display:grid; grid-template-columns:150px 1fr; gap:8px; }
+
+  .legend-col{
+    position:relative;
+    border:1.5px solid #f0e6cf; border-radius:18px; background:#fffdf5;
+  }
+  .legend-item{
+    position:absolute; left:10px; right:10px;
+    display:flex; align-items:center; gap:9px;
+    transform:translateY(-50%);
+  }
+  .face{
+    width:32px; height:32px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:17px; flex:none; border:1.5px solid rgba(0,0,0,.05);
+  }
+  .f5{ background:#fff0a8; } .f3{ background:#ffe08a; }
+  .f0{ background:#e8eaf0; } .fm3{ background:#cbd9ff; } .fm5{ background:#a3baf0; }
+  .legend-text{ line-height:1.3; }
+  .legend-text b{ display:block; font-size:13px; font-weight:600; color:#5b6070; }
+  .legend-text span{ font-size:11.5px; font-weight:500; color:#a0a6b5; }
+
+  .chart-wrapper{
+    height:560px; padding:10px 14px 14px;
+    border:1.5px solid #eef1f8; border-radius:20px; background:#fff;
+  }
+
+  .button-row{ display:flex; justify-content:center; gap:10px; margin-top:20px; flex-wrap:wrap; }
+
+  .guide{
+    margin-top:18px; padding:16px 18px; border-radius:16px;
+    background:#f6f9ff; border:1.5px solid #e6eeff;
+    font-size:14px; font-weight:500; line-height:1.85; color:#5c6a85;
+  }
+  .guide b{ color:#ff5f87; font-weight:700; }
+
+  @media (max-width:900px){
+    body{ padding:12px; } .container{ padding:18px; }
+    h1{ font-size:26px; }
+    .setup-grid,.event-grid{ grid-template-columns:1fr; }
+    .graph-area{ grid-template-columns:1fr; }
+    .legend-col{ display:none; }
+    .chart-wrapper{ height:420px; }
+  }
+</style>
+</head>
+<body>
+<div class="container" id="captureArea">
+
+  <div class="head">
+    <h1>🌈 <span class="c1">나의</span> <span class="c2">인생</span> <span class="c3">그래프</span></h1>
+    <div class="info-card">
+      <div>이름 : <b id="nameLabel">____</b></div>
+      <div>날짜 : <b id="todayLabel"></b></div>
+    </div>
+  </div>
+
+  <div class="subtitle">
+    지금까지의 내 삶을 떠올리며, 기분이나 행복의 정도를 그래프로 나타내 보세요.<br>
+    가장 행복했던 순간은 <span class="up">위로</span>, 힘들었던 순간은 <span class="down">아래로</span>!
+  </div>
+
+  <div class="setup-box">
+    <div class="box-title">① 먼저 이름과 나이를 입력해서 그래프의 기준을 만들어요.</div>
+    <div class="setup-grid">
+      <input id="nameInput" type="text" placeholder="이름을 적어주세요" />
+      <input id="birthYearInput" type="number" placeholder="출생연도 (예: 2017)" />
+      <input id="currentAgeInput" type="number" placeholder="현재 나이 (예: 9)" />
+      <button class="btn-pink" onclick="setupBase()">기본 그래프 만들기</button>
+    </div>
+  </div>
+
+  <div class="input-box">
+    <div class="box-title">② 기억에 남는 일을 하나씩 추가해요.</div>
+    <div class="event-grid">
+      <input id="eventAgeInput" type="number" placeholder="몇 살 때?" />
+      <input id="eventTextInput" type="text" placeholder="무슨 일이 있었나요? (예: 수영대회에서 상을 탔어요)" />
+      <select id="scoreInput">
+        <option value="5">😊 아주 행복해! (+5)</option>
+        <option value="3" selected>🙂 행복해 (+3)</option>
+        <option value="0">😐 보통이야 (0)</option>
+        <option value="-3">😟 힘들었어 (-3)</option>
+        <option value="-5">😭 너무 힘들었어 (-5)</option>
+      </select>
+      <button class="btn-mint" onclick="addEvent()">추가하기</button>
+      <button class="btn-gray" onclick="undoLast()">되돌리기</button>
+    </div>
+  </div>
+
+  <div class="graph-title" id="graphTitle">(　　　)님의 인생 그래프</div>
+
+  <div class="graph-area" id="graphArea">
+    <div class="legend-col" id="legendCol">
+      <div class="legend-item" data-v="5">
+        <div class="face f5">😊</div><div class="legend-text"><b>아주 행복해!</b><span>(+5)</span></div>
+      </div>
+      <div class="legend-item" data-v="3">
+        <div class="face f3">🙂</div><div class="legend-text"><b>행복해</b><span>(+3)</span></div>
+      </div>
+      <div class="legend-item" data-v="0">
+        <div class="face f0">😐</div><div class="legend-text"><b>보통이야</b><span>(0)</span></div>
+      </div>
+      <div class="legend-item" data-v="-3">
+        <div class="face fm3">😟</div><div class="legend-text"><b>힘들었어</b><span>(-3)</span></div>
+      </div>
+      <div class="legend-item" data-v="-5">
+        <div class="face fm5">😭</div><div class="legend-text"><b>너무 힘들었어</b><span>(-5)</span></div>
+      </div>
+    </div>
+
+    <div class="chart-wrapper">
+      <canvas id="lifeChart"></canvas>
+    </div>
+  </div>
+
+  <div class="button-row">
+    <button class="btn-blue" onclick="downloadImage()">📷 사진으로 저장하여 제출하기</button>
+    <button class="btn-gray" onclick="resetAll()">전체 초기화</button>
+  </div>
+
+  <div class="guide">
+    <b>사용 방법</b><br>
+    1. 이름 · 출생연도 · 현재 나이를 넣고 <b>기본 그래프 만들기</b>를 눌러요. (0살부터 지금까지 가로축이 만들어져요.)<br>
+    2. 몇 살 때 무슨 일이 있었는지 적고, 그때의 기분을 골라 <b>추가하기</b>를 눌러요.<br>
+    3. 점 옆에 사건 내용이 나타나고, 행복한 일은 위로 · 힘든 일은 아래로 그려져요.<br>
+    4. 다 만들었으면 <b>사진으로 저장하여 제출하기</b>를 눌러요.
+  </div>
+</div>
+
+<script>
+/* ===== 공통 글꼴 ===== */
+const FONT_FAMILY = '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif';
+Chart.defaults.font.family = FONT_FAMILY;
+Chart.defaults.font.size = 13;
+Chart.defaults.color = "#8a93a8";
+
+/* ===== 상태 ===== */
+let birthYear = null, currentAge = null;
+let lifePoints = [];
+const PALETTE = ["#ff9ec4","#ffb37a","#ffd76e","#8fd98f","#6fc9e8","#9d9bf5","#ff9ec4","#ffc07a"];
+
+document.getElementById("todayLabel").textContent =
+  new Date().toLocaleDateString("ko-KR", {year:"numeric", month:"long", day:"numeric"});
+
+/* ===== 배경 띠 + 0선 ===== */
+const bandPlugin = {
+  id:"bandPlugin",
+  beforeDatasetsDraw(chart){
+    const {ctx, chartArea:ca, scales:{y}} = chart;
+    if(!ca || !y) return;
+    const zero = y.getPixelForValue(0);
+    ctx.save();
+    ctx.fillStyle = "#fff8fa";
+    ctx.fillRect(ca.left, ca.top, ca.right-ca.left, zero-ca.top);
+    ctx.fillStyle = "#f6fbff";
+    ctx.fillRect(ca.left, zero, ca.right-ca.left, ca.bottom-zero);
+    ctx.strokeStyle = "#9db4ff";
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(ca.left, zero);
+    ctx.lineTo(ca.right, zero);
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+
+/* ===== 점 옆 사건 메모 ===== */
+const labelPlugin = {
+  id:"labelPlugin",
+  afterDatasetsDraw(chart){
+    const {ctx, chartArea:ca} = chart;
+    const meta = chart.getDatasetMeta(0);
+    ctx.save();
+    ctx.font = '500 13px ' + FONT_FAMILY;
+    ctx.textAlign = "center";
+    meta.data.forEach((pt, i) => {
+      const item = lifePoints[i];
+      if(!item || !item.event) return;
+      const lines = wrapText(ctx, item.event, 130);
+      const up = item.score >= 0;
+      const lh = 17;
+      const boxW = Math.max.apply(null, lines.map(l => ctx.measureText(l).width)) + 18;
+      const boxH = lines.length * lh + 10;
+      const x = Math.min(Math.max(pt.x, ca.left + boxW/2), ca.right - boxW/2);
+      const yTop = up ? pt.y - 16 - boxH : pt.y + 16;
+
+      ctx.fillStyle = "rgba(255,255,255,.94)";
+      ctx.strokeStyle = up ? "#ffc3d6" : "#c3dcff";
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, x - boxW/2, yTop, boxW, boxH, 9);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "#5a6070";
+      lines.forEach((l, k) => ctx.fillText(l, x, yTop + 8 + lh * (k + 0.75)));
+    });
+    ctx.restore();
+  }
+};
+
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+function wrapText(ctx, text, maxWidth){
+  const words = text.split(" ");
+  const lines = [];
+  let cur = "";
+  for(const w of words){
+    const t = cur ? cur + " " + w : w;
+    if(ctx.measureText(t).width > maxWidth && cur){
+      lines.push(cur);
+      cur = w;
+    } else {
+      cur = t;
+    }
+  }
+  if(cur) lines.push(cur);
+  return lines.slice(0, 3);
+}
+
+/* ===== 왼쪽 범례를 눈금 위치에 정렬 ===== */
+const legendSyncPlugin = {
+  id:"legendSync",
+  afterDraw(){
+    syncLegend();
+  }
+};
+
+function syncLegend(){
+  const y = lifeChart.scales && lifeChart.scales.y;
+  if(!y) return;
+  const areaTop = document.getElementById("graphArea").getBoundingClientRect().top;
+  const canvasTop = lifeChart.canvas.getBoundingClientRect().top;
+  const offset = canvasTop - areaTop;
+  document.querySelectorAll(".legend-item").forEach(el => {
+    const v = Number(el.dataset.v);
+    el.style.top = (offset + y.getPixelForValue(v)) + "px";
+  });
+}
+window.addEventListener("resize", () => setTimeout(syncLegend, 60));
+
+/* ===== 차트 ===== */
+const ctx0 = document.getElementById("lifeChart").getContext("2d");
+const lifeChart = new Chart(ctx0, {
+  type:"line",
+  data:{
+    datasets:[{
+      label:"행복 점수",
+      data:[],
+      borderWidth:3.5,
+      tension:0.28,
+      pointRadius:7,
+      pointHoverRadius:10,
+      pointBorderWidth:3,
+      pointBackgroundColor: c => PALETTE[c.dataIndex % PALETTE.length],
+      pointBorderColor:"#ffffff",
+      borderColor:"#ffb3c8",
+      segment:{ borderColor: c => PALETTE[c.p0DataIndex % PALETTE.length] }
+    }]
+  },
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    layout:{ padding:{ top:52, right:26, bottom:8, left:6 } },
+    plugins:{
+      legend:{ display:false },
+      tooltip:{
+        backgroundColor:"rgba(63,68,80,.94)",
+        titleFont:{ family:FONT_FAMILY, size:13, weight:"700" },
+        bodyFont:{ family:FONT_FAMILY, size:13, weight:"500" },
+        padding:10,
+        cornerRadius:9,
+        displayColors:false,
+        callbacks:{
+          title: c => {
+            const it = lifePoints[c[0].dataIndex];
+            return it.age + "살" + (birthYear ? " · " + (birthYear + it.age) + "년" : "");
+          },
+          label: c => {
+            const it = lifePoints[c.dataIndex];
+            return (it.event || "-") + "  (" + (it.score > 0 ? "+" : "") + it.score + ")";
+          }
+        }
+      }
+    },
+    scales:{
+      x:{
+        type:"linear",
+        min:0,
+        max:10,
+        offset:true,
+        title:{ display:true, text:"나이", font:{ family:FONT_FAMILY, size:13, weight:"700" }, color:"#8a93a8" },
+        ticks:{
+          stepSize:1,
+          maxRotation:0,
+          minRotation:0,
+          autoSkip:true,
+          font:{ family:FONT_FAMILY, size:12, weight:"500" },
+          color:"#8a93a8",
+          callback: v => Number.isInteger(v) ? v + "살" : ""
+        },
+        grid:{ color:"#eef1f8" },
+        border:{ color:"#dfe4f0" }
+      },
+      y:{
+        min:-5,
+        max:5,
+        title:{ display:true, text:"행복 점수", font:{ family:FONT_FAMILY, size:13, weight:"700" }, color:"#8a93a8" },
+        ticks:{
+          stepSize:1,
+          padding:8,
+          font:{ family:FONT_FAMILY, size:12, weight:"500" },
+          color:"#8a93a8"
+        },
+        grid:{ color:"#eef1f8" },
+        border:{ color:"#dfe4f0" }
+      }
+    }
+  },
+  plugins:[bandPlugin, labelPlugin, legendSyncPlugin]
+});
+
+/* ===== 동작 ===== */
+function refreshChart(){
+  lifePoints.sort((a, b) => a.age - b.age);
+  lifeChart.data.datasets[0].data = lifePoints.map(p => ({ x:p.age, y:p.score }));
+  const ages = lifePoints.map(p => p.age);
+  const maxAge = Math.max(currentAge || 0, 5, ages.length ? Math.max.apply(null, ages) : 0);
+  lifeChart.options.scales.x.max = maxAge;
+  lifeChart.update();
+  syncLegend();
+}
+
+function setupBase(){
+  const name = document.getElementById("nameInput").value.trim();
+  const by = Number(document.getElementById("birthYearInput").value);
+  const ca = Number(document.getElementById("currentAgeInput").value);
+  const thisYear = new Date().getFullYear();
+
+  if(!name){ alert("이름을 입력해 주세요."); return; }
+  if(!by || by < 1900 || by > thisYear){ alert("올바른 출생연도를 입력해 주세요."); return; }
+  if(document.getElementById("currentAgeInput").value === ""){ alert("현재 나이를 입력해 주세요."); return; }
+  if(ca < 0 || ca > 120){ alert("올바른 현재 나이를 입력해 주세요."); return; }
+
+  birthYear = by;
+  currentAge = ca;
+  setTitle(name);
+
+  lifePoints = [{ age:0, score:1, event:"태어났을 때" }];
+  refreshChart();
+}
+
+function addEvent(){
+  if(birthYear === null){ alert("먼저 ①에서 기본 그래프를 만들어 주세요."); return; }
+  const ageRaw = document.getElementById("eventAgeInput").value;
+  const age = Number(ageRaw);
+  const text = document.getElementById("eventTextInput").value.trim();
+  const score = Number(document.getElementById("scoreInput").value);
+
+  if(ageRaw === "" || age < 0 || age > currentAge){
+    alert("0살부터 " + currentAge + "살 사이의 나이를 입력해 주세요.");
+    return;
+  }
+  if(!text){ alert("무슨 일이 있었는지 적어 주세요."); return; }
+
+  lifePoints.push({ age:age, score:score, event:text });
+  document.getElementById("eventAgeInput").value = "";
+  document.getElementById("eventTextInput").value = "";
+  document.getElementById("eventTextInput").focus();
+  refreshChart();
+}
+
+function undoLast(){
+  if(lifePoints.length <= 1) return;
+  lifePoints.pop();
+  refreshChart();
+}
+
+function resetAll(){
+  if(!confirm("모든 내용을 지울까요?")) return;
+  birthYear = null;
+  currentAge = null;
+  lifePoints = [];
+  ["nameInput","birthYearInput","currentAgeInput","eventAgeInput","eventTextInput"]
+    .forEach(id => document.getElementById(id).value = "");
+  setTitle("");
+  refreshChart();
+}
+
+function setTitle(name){
+  document.getElementById("graphTitle").textContent =
+    name ? name + "님의 인생 그래프" : "(　　　)님의 인생 그래프";
+  document.getElementById("nameLabel").textContent = name || "____";
+}
+
+document.getElementById("nameInput").addEventListener("input", e => {
+  setTitle(e.target.value.trim());
+});
+
+function downloadImage(){
+  const name = document.getElementById("nameInput").value.trim() || "나의";
+  html2canvas(document.getElementById("captureArea"), { scale:2, backgroundColor:"#ffffff" })
+    .then(canvas => {
+      const a = document.createElement("a");
+      a.download = name + "_인생그래프.png";
+      a.href = canvas.toDataURL("image/png");
+      a.click();
+    });
+}
+
+refreshChart();
+</script>
+</body>
+</html>
